@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사진 분류</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>체험학습 보고서 사진 제출</h1>
+    <p>체험학습 보고서에 적합한 사진을 업로드하세요.</p>
+
+    <!-- 파일 업로드 -->
+    <input type="file" id="imageUpload" accept="image/*">
+    
+    <!-- 업로드된 이미지 표시 -->
+    <div id="imageContainer">
+        <img id="uploadedImage" src="" alt="Uploaded Image" width="300" />
+    </div>
+
+    <!-- 결과 메시지 출력 -->
+    <div id="output"></div>
+
+    <script>
+        let model;
+        let imageElement = document.getElementById('uploadedImage');
+        let outputDiv = document.getElementById('output');
+        let imageUpload = document.getElementById('imageUpload');
+
+        // Teachable Machine 모델 로드
+        async function loadModel() {
+            const URL = 'https://teachablemachine.withgoogle.com/models/Bk6tp7qIy/';
+            model = await tmImage.load(URL + 'model.json', URL + 'metadata.json');
+            console.log('Model loaded');
+        }
+
+        loadModel();  // 모델 로드
+
+        // 파일 업로드 이벤트 처리
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && model) {  // 모델이 로드되었는지 확인
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageElement.src = e.target.result;
+                    imageElement.onload = () => {
+                        classifyImage();  // 이미지가 업로드되면 분류 시작
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                outputDiv.innerHTML = "모델이 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.";
+            }
+        });
+
+        // 이미지 분류 함수
+        async function classifyImage() {
+            try {
+                const prediction = await model.predict(imageElement);
+                console.log(prediction);
+
+                const topPrediction = prediction[0];
+                console.log(topPrediction);
+
+                // 두 명 이상의 전신이 나온 사진을 분류하는 기준에 맞는 예시
+                if (topPrediction.className === "두명 이상의 전신") {
+                    outputDiv.innerHTML = "제출이 완료되었습니다. 결재를 기다려주세요!";
+                } else {
+                    outputDiv.innerHTML = "보고서에 적합하지 않은 사진입니다. 다른 사진을 제출하세요!";
+                }
+            } catch (error) {
+                console.error("Error during image classification:", error);
+                outputDiv.innerHTML = "이미지 분류 중 오류가 발생했습니다. 다시 시도해 주세요.";
+            }
+        }
+    </script>
+</body>
+</html>
